@@ -1,0 +1,33 @@
+.student-program-sheet { width: 7.77in; max-width: 100%; background: white; color: #000; font: 11px Arial,sans-serif; margin: 0 auto; }
+.student-program-sheet table { width:100%; border-collapse:collapse; table-layout:fixed; }
+.student-program-sheet th,.student-program-sheet td { border:1px solid #333; vertical-align:middle; text-align:center; overflow-wrap:anywhere; }
+.student-program-header td { padding:5px; }
+.student-program-header .student-school-logo { padding:8px; }
+.student-school-logo img { max-height:85px; max-width:85px; object-fit:contain; margin:auto; }
+.student-institution { padding:10px 8px; font-size:14px; line-height:1.7; }
+.student-program-title { padding:12px 4px; font-size:17px; font-weight:bold; }
+.student-term { padding:12px 4px; font-size:14px; }
+.student-program-header .student-field-value { text-align:left; }
+.student-program-header td:last-child { text-align:left; }
+.student-program-header td:last-child > span { display:inline-block; min-width:65px; text-align:right; }
+
+.student-header-spacer { height:25px; }
+.student-program-grid th { background:#a9d18e; height:27px; font-size:10px; }
+.student-program-grid tbody tr { height:var(--student-row-height,34px); }
+.student-program-grid td { padding:1px 2px; font-size:10px; }
+.student-program-grid th.student-meridiem { background:white; font-size:11px; line-height:1.7; }
+.student-program-grid .student-time { white-space:nowrap; text-align:right; }
+.student-class-cell { line-height:1.6; }
+.student-class-cell > div { padding:5px 1px; }
+.student-class-cell strong { font-weight:500; }
+.student-program-grid .student-noon-break { background:#eee; font-size:14px; font-weight:bold; }
+.student-program-signature { min-height:125px; border:1px solid #333; border-top:0; padding:15px 8px; }
+.student-program-signature > div { margin:50px 0 0 65px; }
+.student-program-signature strong { text-transform:uppercase; text-decoration:underline; }
+.student-program-signature p { margin:4px 0 0; font-size:10px; }
+@media print {
+  @page student-class-program { size:A4 portrait; margin:.3in .25in; }
+  body.printing-program .program-print-root.print-student-class-program { page:student-class-program; width:7.77in; }
+  .student-program-sheet { page:student-class-program; width:7.77in; max-width:none; break-inside:avoid; }
+  .student-program-grid tr,.student-program-signature { break-inside:avoid; }
+}

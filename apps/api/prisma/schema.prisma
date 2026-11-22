@@ -1,0 +1,382 @@
+// FACILOAD Prisma schema — mirrors docs/4-database.md exactly.
+// Local dev runs on SQLite (file:./dev.db — no container or DB server). The
+// former Prisma enums (Role / EmploymentStatus / DayOfWeek / Semester /
+// SessionType) are stored as plain String columns with their valid values
+// documented inline; Zod (apps/api/src/validation/*.validation.ts) enforces
+// them at the API layer just as strictly as the enums did. The shared TS
+// enums in packages/shared/src/index.ts (frontend) mirror the same value
+// sets; keep both in sync.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// SQLite for local dev; PostgreSQL remains the documented production target
+// (docs/4-database.md). Path is relative to this schema file.
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id                          String               @id @default(uuid())
+  email                       String               @unique
+  username                    String?
+  password_hash               String
+  role                        String               @default("FACULTY") // CHAIR | FACULTY
+  faculty_id                  String?              @unique
+  faculty                     Faculty?             @relation(fields: [faculty_id], references: [id], onDelete: Restrict)
+  /// URL of the profile photo (local uploads path or S3 key URL). Null = no
+  /// photo uploaded yet; the UI falls back to initials.
+  avatar_url                  String?
+  is_active                   Boolean              @default(true)
+  created_at                  DateTime             @default(now())
+  updated_at                  DateTime             @default(now()) @updatedAt
+  assignedFacultyDesignations FacultyDesignation[] @relation("FacultyDesignationAssigner")
+  plannerNotifications        PlannerNotification[]
+  reviewedPlannerSubmissions  PlannerSubmission[]   @relation("PlannerSubmissionReviewer")
+
+  @@map("users")
+}
+
+model LoadSettings {
+  id                 String @id @default("singleton")
+  lab_coefficient    Float  @default(0.7)
+  weekly_hours       Float  @default(40)
+  consultation_hours Float  @default(4)
+  min_research       Float  @default(1)
+  min_extension      Float  @default(1)
+  min_imp            Float  @default(0)
+  min_session_hours  Float  @default(1)
+  prep_tiers_json    String @default("[{\"minPreps\":1,\"maxPreps\":2,\"ceiling\":21},{\"minPreps\":3,\"maxPreps\":4,\"ceiling\":18},{\"minPreps\":5,\"maxPreps\":6,\"ceiling\":15}]")
+
+  @@map("load_settings")
+}
+
+model Faculty {
+  id                  String                      @id @default(uuid())
+  employee_no         String                      @unique
+  first_name          String
+  last_name           String
+  rank                String?
+  employment_status   String                      @default("FULL_TIME") // FULL_TIME | PART_TIME
+  max_units           Int                         @default(24)
+  /// Mirror of the linked user's avatar (denormalized so faculty lists on the
+  /// dashboard/load panels can render the photo without a user join).
+  avatar_url          String?
+  created_at          DateTime                    @default(now())
+  updated_at          DateTime                    @default(now()) @updatedAt
+  deleted_at          DateTime?
+  user                User?
+  assignments         WorkloadAssignment[]
+  facultyDesignations FacultyDesignation[]
+  teachingLoadDetails FacultyTeachingLoadDetail[]
+  loads               FacultyLoad[]
+  sessions            FacultySession[]
+  studentCounts       FacultySectionStudents[]
+  plannerDrafts       PlannerDraft[]
+  plannerSubmissions  PlannerSubmission[]
+
+  @@map("faculty")
+}
+
+model Subject {
+  id            String               @id @default(uuid())
+  code          String               @unique
+  title         String
+  // Float instead of Decimal: SQLite has no arbitrary-precision decimal type.
+  // IEEE-754 double precision is a fine tradeoff for department-scale
+  // unit/hour counts (values stay exact for the small 2dp ranges used here).
+  units         Float
+  lecture_hours Float                @default(0)
+  lab_hours     Float                @default(0)
+  created_at    DateTime             @default(now())
+  updated_at    DateTime             @default(now()) @updatedAt
+  deleted_at    DateTime?
+  assignments   WorkloadAssignment[]
+
+  @@map("subjects")
+}
+
+model Section {
+  id            String                   @id @default(uuid())
+  year_level    Int
+  name          String
+  created_at    DateTime                 @default(now())
+  updated_at    DateTime                 @default(now()) @updatedAt
+  assignments   WorkloadAssignment[]
+  studentCounts FacultySectionStudents[]
+
+  @@unique([year_level, name])
+  @@map("sections")
+}
+
+model Room {
+  id                   String         @id @default(uuid())
+  name                 String         @unique
+  is_under_maintenance Boolean        @default(false)
+  created_at           DateTime       @default(now())
+  updated_at           DateTime       @default(now()) @updatedAt
+  slots                ScheduleSlot[]
+
+  @@map("rooms")
+}
+
+model AcademicTerm {
+  id                  String                      @id @default(uuid())
+  school_year         String
+  semester            String // FIRST | SECOND | SUMMER
+  is_active           Boolean                     @default(false)
+  effectivity_start   String?
+  effectivity_end     String?
+  created_at          DateTime                    @default(now())
+  assignments         WorkloadAssignment[]
+  facultyDesignations FacultyDesignation[]
+  teachingLoadDetails FacultyTeachingLoadDetail[]
+  loads               FacultyLoad[]
+  sessions            FacultySession[]
+  studentCounts       FacultySectionStudents[]
+  plannerDrafts       PlannerDraft[]
+  plannerSubmissions  PlannerSubmission[]
+
+  @@unique([school_year, semester])
+  @@map("academic_terms")
+}
+
+model WorkloadAssignment {
+  id         String         @id @default(uuid())
+  faculty_id String
+  faculty    Faculty        @relation(fields: [faculty_id], references: [id], onDelete: Restrict)
+  subject_id String
+  subject    Subject        @relation(fields: [subject_id], references: [id], onDelete: Restrict)
+  section_id String
+  section    Section        @relation(fields: [section_id], references: [id], onDelete: Restrict)
+  term_id    String
+  term       AcademicTerm   @relation(fields: [term_id], references: [id], onDelete: Restrict)
+  color      String? // #RRGGBB hex (was @db.VarChar(7))
+  created_at DateTime       @default(now())
+  updated_at DateTime       @default(now()) @updatedAt
+  deleted_at DateTime?
+  slots      ScheduleSlot[]
+
+  @@unique([faculty_id, subject_id, section_id, term_id])
+  @@index([faculty_id])
+  @@index([term_id])
+  @@map("workload_assignments")
+}
+
+model ScheduleSlot {
+  id                     String             @id @default(uuid())
+  workload_assignment_id String
+  workload_assignment    WorkloadAssignment @relation(fields: [workload_assignment_id], references: [id], onDelete: Cascade)
+  room_id                String?
+  room                   Room?              @relation(fields: [room_id], references: [id], onDelete: Restrict)
+  session_type           String // LECTURE | LAB
+  day_of_week            String // MON | TUE | WED | THU | FRI | SAT
+  // Stored as canonical "HH:MM" 24-hour strings — the same format the API
+  // boundary sends/receives (SQLite has no native TIME type; zero-padded
+  // strings also sort and compare correctly for overlap checks).
+  start_time             String
+  end_time               String
+  created_at             DateTime           @default(now())
+  updated_at             DateTime           @default(now()) @updatedAt
+
+  @@index([room_id, day_of_week])
+  @@index([workload_assignment_id, day_of_week])
+  @@map("schedule_slots")
+}
+
+model Designation {
+  id                    String               @id @default(uuid())
+  name                  String               @unique
+  default_hours         Float
+  service_credit_hours  Float                @default(0)
+  grants_service_credit Boolean              @default(false)
+  created_at            DateTime             @default(now())
+  updated_at            DateTime             @default(now()) @updatedAt
+  deleted_at            DateTime?
+  facultyDesignations   FacultyDesignation[]
+
+  @@map("designations")
+}
+
+model FacultyDesignation {
+  id                  String           @id @default(uuid())
+  faculty_id          String
+  faculty             Faculty          @relation(fields: [faculty_id], references: [id], onDelete: Restrict)
+  designation_id      String
+  designation         Designation      @relation(fields: [designation_id], references: [id], onDelete: Restrict)
+  term_id             String
+  term                AcademicTerm     @relation(fields: [term_id], references: [id], onDelete: Restrict)
+  hours               Float
+  service_credit      Float            @default(0)
+  assigned_by_user_id String?
+  assigned_by         User?            @relation("FacultyDesignationAssigner", fields: [assigned_by_user_id], references: [id], onDelete: Restrict)
+  created_at          DateTime         @default(now())
+  updated_at          DateTime         @default(now()) @updatedAt
+  deleted_at          DateTime?
+  sessions            FacultySession[]
+
+  @@unique([faculty_id, designation_id, term_id])
+  @@index([faculty_id])
+  @@index([designation_id])
+  @@index([term_id])
+  @@map("faculty_designations")
+}
+
+model FacultyTeachingLoadDetail {
+  id                     String       @id @default(uuid())
+  faculty_id             String
+  faculty                Faculty      @relation(fields: [faculty_id], references: [id], onDelete: Restrict)
+  term_id                String
+  term                   AcademicTerm @relation(fields: [term_id], references: [id], onDelete: Restrict)
+  research               Float        @default(0)
+  extension              Float        @default(0)
+  imp                    Float        @default(0)
+  consultation           Float        @default(0)
+  overload_plotted_hours Float        @default(0)
+  created_at             DateTime     @default(now())
+  updated_at             DateTime     @default(now()) @updatedAt
+
+  @@unique([faculty_id, term_id])
+  @@index([term_id])
+  @@map("faculty_teaching_load_details")
+}
+
+model FacultyLoad {
+  id                 String       @id @default(uuid())
+  faculty_id         String
+  faculty            Faculty      @relation(fields: [faculty_id], references: [id], onDelete: Cascade)
+  term_id            String
+  term               AcademicTerm @relation(fields: [term_id], references: [id], onDelete: Cascade)
+  research_hours     Float        @default(1)
+  extension_hours    Float        @default(1)
+  imp_hours          Float        @default(0)
+  consultation_hours Float?
+
+  @@unique([faculty_id, term_id])
+  @@map("faculty_loads")
+}
+
+model FacultySession {
+  id                     String              @id @default(uuid())
+  faculty_id             String
+  faculty                Faculty             @relation(fields: [faculty_id], references: [id], onDelete: Cascade)
+  term_id                String
+  term                   AcademicTerm        @relation(fields: [term_id], references: [id], onDelete: Cascade)
+  type                   String
+  faculty_designation_id String?
+  faculty_designation    FacultyDesignation? @relation(fields: [faculty_designation_id], references: [id], onDelete: Cascade)
+  day_of_week            String
+  start_time             String
+  end_time               String
+  deleted_at             DateTime?
+
+  @@index([faculty_id, term_id, day_of_week])
+  @@map("faculty_sessions")
+}
+
+model FacultySectionStudents {
+  id            String       @id @default(uuid())
+  faculty_id    String
+  faculty       Faculty      @relation(fields: [faculty_id], references: [id], onDelete: Cascade)
+  section_id    String
+  section       Section      @relation(fields: [section_id], references: [id], onDelete: Cascade)
+  term_id       String
+  term          AcademicTerm @relation(fields: [term_id], references: [id], onDelete: Cascade)
+  student_count Int
+
+  @@unique([faculty_id, section_id, term_id])
+  @@map("faculty_section_students")
+}
+
+model FormSettings {
+  id               String  @id @default("singleton")
+  school_lines     String  @default("Republic of the Philippines\nPALOMPON INSTITUTE OF TECHNOLOGY\nPalompon, Leyte")
+  college_lines    String  @default("COLLEGE OF TECHNOLOGY AND ENGINEERING")
+  department       String  @default("Industrial Technology")
+  program          String  @default("INT")
+  school_logo_path String? @default("/school-logo.jpg")
+  tuv_logo_path    String?
+
+  @@map("form_settings")
+}
+
+model FormTemplate {
+  type     String @id
+  title    String
+  ref_code String
+  revision String @default("00")
+
+  @@map("form_templates")
+}
+
+model SignatoryOption {
+  id     String  @id @default(uuid())
+  slot   String
+  name   String
+  title  String
+  active Boolean @default(true)
+
+  @@map("signatory_options")
+}
+
+/// Editable Faculty-owned state. Submission snapshots live separately so
+/// edits and later approvals cannot rewrite an earlier review record.
+model PlannerDraft {
+  id           String       @id @default(uuid())
+  faculty_id   String
+  faculty      Faculty      @relation(fields: [faculty_id], references: [id], onDelete: Restrict)
+  term_id      String
+  term         AcademicTerm @relation(fields: [term_id], references: [id], onDelete: Restrict)
+  revision     Int          @default(0)
+  sessions_json String      @default("[]")
+  updated_at   DateTime     @default(now()) @updatedAt
+
+  @@unique([faculty_id, term_id])
+  @@index([term_id])
+  @@map("planner_drafts")
+}
+
+/// Immutable timetable and load snapshot submitted for review. Only status,
+/// feedback and review metadata change during the explicit state transitions.
+model PlannerSubmission {
+  id                  String              @id @default(uuid())
+  faculty_id          String
+  faculty             Faculty             @relation(fields: [faculty_id], references: [id], onDelete: Restrict)
+  term_id             String
+  term                AcademicTerm        @relation(fields: [term_id], references: [id], onDelete: Restrict)
+  draft_revision      Int
+  sessions_json       String
+  teaching_json       String
+  load_json           String
+  status              String              @default("PENDING") // PENDING | APPROVED | REJECTED | WITHDRAWN | CANCELLED | SUPERSEDED
+  feedback            String              @default("")
+  submitted_at        DateTime            @default(now())
+  reviewed_at         DateTime?
+  reviewed_by_user_id String?
+  reviewed_by         User?               @relation("PlannerSubmissionReviewer", fields: [reviewed_by_user_id], references: [id], onDelete: SetNull)
+  notifications       PlannerNotification[]
+
+  @@index([faculty_id, term_id, status])
+  @@index([status, submitted_at])
+  @@map("planner_submissions")
+}
+
+/// Durable, per-user planner events. `read_at` drives the unread indicator.
+model PlannerNotification {
+  id                   String             @id @default(uuid())
+  recipient_user_id    String
+  recipient            User               @relation(fields: [recipient_user_id], references: [id], onDelete: Cascade)
+  submission_id        String?
+  submission           PlannerSubmission? @relation(fields: [submission_id], references: [id], onDelete: SetNull)
+  type                 String
+  title                String
+  message              String
+  read_at              DateTime?
+  created_at           DateTime           @default(now())
+
+  @@index([recipient_user_id, read_at, created_at])
+  @@index([submission_id])
+  @@map("planner_notifications")
+}

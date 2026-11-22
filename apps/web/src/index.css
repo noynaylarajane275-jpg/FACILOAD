@@ -1,0 +1,283 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==========================================================================
+   TYPOGRAPHY TOKENS
+   ========================================================================== */
+
+:root {
+  /* ---- Font families (Inter: 400, 500, 600, 700) ---- */
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  --font-display: 'Space Grotesk', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-jakarta: 'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
+
+  /* ---- Font features ---- */
+  --font-feature-base: 'cv11' on, 'ss01' on;
+  --font-feature-numeric: 'tnum' on, 'lnum' on;
+
+  /* ---- Type scale (size and line-height are separate tokens) ---- */
+  --text-xs: 11px;
+  --text-xs-lh: 1.4;
+  --text-sm: 12px;
+  --text-sm-lh: 1.4;
+  --text-base: 14px;
+  --text-base-lh: 1.5;
+  --text-lg: 15px;
+  --text-lg-lh: 1.4;
+  --text-xl: 16px;
+  --text-xl-lh: 1.4;
+  --text-2xl: 20px;
+  --text-2xl-lh: 1.3;
+  --text-3xl: 24px;
+  --text-3xl-lh: 1.2;
+  --text-4xl: 28px;
+  --text-4xl-lh: 1.2;
+  --text-5xl: 36px;
+  --text-5xl-lh: 1.15;
+  --text-6xl: 40px;
+  --text-6xl-lh: 1.1;
+
+  /* ---- Font weights ---- */
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* ---- Letter spacing ---- */
+  --letter-spacing-tight: -0.01em;
+  --letter-spacing-wide: 0.08em;
+
+  /* ---- Line height overrides ---- */
+  --leading-tight: 1.2;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.4;
+
+  /* ---- Tabular numbers ---- */
+  --tabular-nums: tabular-nums;
+
+  /* ---- Misc ---- */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* ==========================================================================
+   GLOBAL BASE
+   Pages not wrapped in .app-scoped (e.g. the login modal) get the sans font
+   instead of the browser's default serif.
+   ========================================================================== */
+
+body {
+  font-family: var(--font-sans);
+  font-feature-settings: var(--font-feature-base);
+}
+
+/* ==========================================================================
+   APP-WIDE SCOPED BASE STYLES
+   - Scoped to .app-scoped wrapper so the Class Program print layout
+   * (PIT-COTE-FOR-3-2-01B) keeps its own standalone styling unchanged.
+   - To include a page in this scoped setup, wrap it in <div class="app-scoped">.
+   ========================================================================== */
+
+@layer base {
+  :where(.app-scoped) {
+    font-family: var(--font-sans);
+  }
+
+  :where(.app-scoped) :is(h1, h2, h3, h4, h5, h6) {
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--leading-tight);
+  }
+
+  :where(.app-scoped) p {
+    font-size: var(--text-base);
+    line-height: var(--text-base-lh);
+    font-weight: var(--font-weight-normal);
+  }
+}
+/* ==========================================================================
+   UTILITY CLASSES - TYPE SCALE TOKENS
+   ========================================================================== */
+
+/* Page title "Dashboard": 24px / 600 */
+/* ==========================================================================
+   TYPE SCALE CLASSES (driven by the tokens in :root)
+   ========================================================================== */
+
+@layer components {
+  /* Page title: 24px / 600 */
+  .t-page-title {
+    font-size: var(--text-3xl);
+    line-height: var(--text-3xl-lh);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--letter-spacing-tight);
+  }
+
+  /* Greeting heading: 28px / 600 */
+  .t-greeting {
+    font-size: var(--text-4xl);
+    line-height: var(--text-4xl-lh);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--letter-spacing-tight);
+  }
+
+  /* Section heading: 20px / 600 */
+  .t-heading {
+    font-size: var(--text-2xl);
+    line-height: var(--text-2xl-lh);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--letter-spacing-tight);
+  }
+
+  /* Card / section titles: 16px / 600 */
+  .t-title {
+    font-size: var(--text-xl);
+    line-height: var(--text-xl-lh);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--letter-spacing-tight);
+  }
+
+  /* Body text: 14px / 400 */
+  .t-body {
+    font-size: var(--text-base);
+    line-height: var(--text-base-lh);
+    font-weight: var(--font-weight-normal);
+  }
+
+  /* Small text: 12px / 400 */
+  .t-small {
+    font-size: var(--text-sm);
+    line-height: var(--text-sm-lh);
+    font-weight: var(--font-weight-normal);
+  }
+
+  /* Caption: 12px / 400, muted (bumped from 11px for readability) */
+  .t-caption {
+    font-size: var(--text-sm);
+    line-height: var(--text-sm-lh);
+    font-weight: var(--font-weight-normal);
+    @apply text-slate-600;
+  }
+
+  /* Eyebrow label: 11px / 600 uppercase */
+  .t-eyebrow {
+    font-size: var(--text-xs);
+    line-height: var(--text-xs-lh);
+    font-weight: var(--font-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: var(--letter-spacing-wide);
+  }
+
+  /* Big stat number: 40px / 700 */
+  .t-stat-number {
+    font-size: var(--text-6xl);
+    line-height: var(--text-6xl-lh);
+    font-weight: var(--font-weight-bold);
+    font-variant-numeric: var(--tabular-nums);
+  }
+}
+
+.t-num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ==========================================================================
+   COMPONENT CLASSES
+   ========================================================================== */
+
+.app-bg {
+  @apply bg-white text-slate-900;
+}
+
+.glass-card {
+  @apply rounded-2xl border border-slate-200 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.05),0_14px_36px_-24px_rgba(74,10,26,0.28)];
+}
+
+.glass-input {
+  @apply w-full rounded-xl border-[1.5px] border-brand-500/20 bg-white/80 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/15;
+}
+
+.glass-label {
+  @apply mb-1.5 block text-xs font-semibold text-slate-600;
+}
+
+.glass-icon {
+  @apply pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-brand-500/70;
+}
+
+.glass-btn-primary {
+  @apply w-full rounded-xl bg-gradient-to-b from-brand-400 to-brand-500 py-3.5 font-bold text-white shadow-[0_12px_26px_-10px_rgba(127,15,38,0.65)] transition-shadow hover:shadow-[0_16px_30px_-10px_rgba(127,15,38,0.75)] disabled:opacity-50;
+}
+
+.glass-link {
+  @apply cursor-pointer font-semibold text-brand-500 hover:text-brand-400;
+}
+
+.glass-chip {
+  @apply rounded-full border border-brand-500/20 bg-brand-500/10 text-brand-500;
+}
+
+.glass-card-dark {
+  @apply rounded-2xl border border-glass-border-strong bg-gradient-to-br from-navy-800 via-navy-900 to-navy-950 shadow-[0_30px_70px_rgba(6,2,4,0.55)] backdrop-blur-[18px];
+}
+
+.glass-input-dark {
+  @apply w-full rounded-xl border-[1.5px] border-glass-border bg-white/[0.06] text-sm text-ink-100 outline-none transition-colors placeholder:text-ink-500 focus:border-signal-300 focus:bg-white/[0.09] focus:ring-4 focus:ring-signal-300/15;
+}
+
+.glass-label-dark {
+  @apply mb-1.5 block text-xs font-semibold text-ink-300;
+}
+
+.glass-icon-dark {
+  @apply pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-signal-300/70;
+}
+
+.glass-btn-primary-dark {
+  @apply w-full rounded-xl bg-gradient-to-b from-brand-400 to-[#7f0d24] py-3.5 font-bold text-white shadow-[0_12px_26px_-10px_rgba(230,62,92,0.45)] transition-shadow hover:shadow-[0_16px_30px_-10px_rgba(230,62,92,0.6)] disabled:opacity-50;
+}
+
+.glass-link-dark {
+  @apply cursor-pointer font-semibold text-signal-300 hover:text-white;
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 12mm;
+  }
+
+  html, body, #root, #root > div, #root main {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  #teaching-load-print, #teaching-load-print * {
+    visibility: visible !important;
+  }
+
+  #teaching-load-print {
+    position: absolute !important;
+    inset: 0 auto auto 0 !important;
+    width: 100% !important;
+    padding: 0 !important;
+    color: #0f172a !important;
+    background: #ffffff !important;
+    font-size: 10pt !important;
+  }
+
+  #teaching-load-print .teaching-load-no-print {
+    display: none !important;
+  }
+
+  #teaching-load-print .teaching-load-print-heading {
+    display: block !important;
+  }
+}

@@ -1,0 +1,51 @@
+import { useEffect,useState } from 'react';
+import { motion,useReducedMotion } from 'framer-motion';
+import { apiFetch,apiAssetUrl } from '../lib/api';
+import { getFormConfiguration,type FormConfiguration,type Signatory } from '../lib/program-forms';
+import { getLoadSettings,type LoadSettings } from '../lib/teaching-load';
+import { useTermStore } from '../store/term.store';
+import { useToast } from '../components/Toast';
+const settingsKeys=['school_lines','college_lines','department','program','school_logo_path','tuv_logo_path'] as const;
+const loadKeys=['lab_coefficient','weekly_hours','consultation_hours','min_research','min_extension','min_imp','min_session_hours'] as const;
+export function FormSettingsPage(){
+  const [config,setConfig]=useState<FormConfiguration|null>(null),[load,setLoad]=useState<LoadSettings|null>(null),[error,setError]=useState(''),[tick,setTick]=useState(0),[busy,setBusy]=useState(false);
+  const [dates,setDates]=useState({effectivity_start:'',effectivity_end:''});
+  const [editing,setEditing]=useState(''),[signature,setSignature]=useState({slot:'PREPARED' as Signatory['slot'],name:'',title:'',active:true});
+  const termId=useTermStore(s=>s.selectedTermId),termStatus=useTermStore(s=>s.status),loadTerms=useTermStore(s=>s.loadTerms),terms=useTermStore(s=>s.terms),selectTerm=useTermStore(s=>s.selectTerm);
+  const reduce=useReducedMotion(),{pushToast}=useToast();
+  const panel='rounded-2xl border border-leaf-100 bg-white p-5',field='mt-1 w-full rounded-lg border border-leaf-200 bg-white px-3 py-2 text-sm text-ink',button='rounded-lg bg-leaf-500 px-4 py-2 text-sm font-semibold disabled:opacity-50';
+  useEffect(()=>{if(termStatus==='idle')void loadTerms();},[termStatus,loadTerms]);
+  useEffect(()=>{let active=true;setError('');void Promise.all([getFormConfiguration(),getLoadSettings()]).then(([data,settings])=>{if(active){setConfig(data);setLoad(settings.settings);}}).catch(()=>{if(active)setError('Could not load form settings.');});return()=>{active=false;};},[tick]);
+  useEffect(()=>{let active=true;if(termId)void apiFetch<{effectivity_start:string|null;effectivity_end:string|null}>(`/api/terms/${termId}/effectivity`).then(d=>{if(active)setDates({effectivity_start:d.effectivity_start??'',effectivity_end:d.effectivity_end??''});}).catch(()=>{if(active)setError('Could not load term effectivity.');});return()=>{active=false;};},[termId,tick]);
+  async function save(path:string,method:string,body?:unknown){
+    setBusy(true);
+    try{
+      await apiFetch(path,{method,...(body===undefined?{}:{body:body instanceof FormData?body:JSON.stringify(body)})});
+      pushToast('success','Settings saved.');setTick(n=>n+1);return true;
+    }catch(e){pushToast('error',e instanceof Error?e.message:'Could not save settings');return false;}
+    finally{setBusy(false);}
+  }
+  if(error)return <div role="alert" className={panel}>{error}<button className={button} onClick={()=>setTick(n=>n+1)}>Retry</button></div>;
+  if(!config||!load)return <div role="status" className={`${panel} h-40 animate-pulse`}>Loading form settings…</div>;
+  return <motion.div initial={reduce?false:{opacity:0,y:6}} animate={{opacity:1,y:0}} className="space-y-5 text-ink"><h1 className="text-2xl font-semibold">Form Settings</h1>
+    <form className={panel} onSubmit={e=>{e.preventDefault();void save('/api/form-settings','PUT',Object.fromEntries(settingsKeys.map(k=>[k,config.settings[k]])));}}><h2 className="font-semibold">Institution and form header</h2><div className="my-3 grid gap-3 sm:grid-cols-2">{(['school_lines','college_lines','department','program'] as const).map(k=><label key={k} className="text-sm capitalize">{k.replaceAll('_',' ')}<textarea required maxLength={500} aria-label={k.replaceAll('_',' ')} className={field} value={config.settings[k]} onChange={e=>setConfig({...config,settings:{...config.settings,[k]:e.target.value}})}/></label>)}</div><button className={button} disabled={busy}>Save header</button></form>
+    <section className={panel}><h2 className="font-semibold">School and TUV NORD logos</h2><div className="mt-3 grid gap-5 sm:grid-cols-2">{(['school','tuv'] as const).map(kind=>{const url=config.settings[kind==='school'?'school_logo_path':'tuv_logo_path'];return <div key={kind}><label className="text-sm font-medium">{kind==='school'?'School logo':'TUV NORD logo'}<input aria-label={`${kind} logo upload`} type="file" accept="image/png,image/jpeg" disabled={busy} className="my-2 block w-full text-xs" onChange={e=>{const file=e.target.files?.[0];if(!file)return;if(file.size>2*1024*1024||!['image/png','image/jpeg'].includes(file.type)){pushToast('error','Choose a PNG or JPG up to 2MB.');return;}const data=new FormData();data.append('logo',file);void save(`/api/form-settings/logos/${kind}`,'POST',data);}}/></label>{url?<img className="h-24 max-w-48 object-contain" src={apiAssetUrl(url)??''} alt={`${kind} logo preview`}/>:<p className="text-sm text-amber-700">No logo uploaded.</p>}</div>;})}</div></section>
+    <section className={panel}><h2 className="font-semibold">Approved form reference codes</h2><p className="my-2 text-xs text-ink/60">Each form has its own approved reference code. Enter the Chairman’s confirmed codes.</p><div className="space-y-4">{config.templates.map((t,index)=><form key={t.type} className="grid items-end gap-3 rounded-xl border border-leaf-100 p-3 sm:grid-cols-4" onSubmit={e=>{e.preventDefault();void save(`/api/form-templates/${t.type}`,'PUT',{title:t.title,ref_code:t.ref_code,revision:t.revision});}}>{(['title','ref_code','revision'] as const).map(k=><label key={k} className="text-xs">{t.type} · {k.replaceAll('_',' ')}<input aria-label={`${t.type} ${k}`} className={field} required={k!=='ref_code'} value={t[k]} onChange={e=>setConfig({...config,templates:config.templates.map((value,i)=>i===index?{...value,[k]:e.target.value}:value)})}/></label>)}<button className={button} disabled={busy}>Save form</button></form>)}</div></section>
+    <form className={panel} onSubmit={e=>{e.preventDefault();void save(`/api/terms/${termId}/effectivity`,'PATCH',{effectivity_start:dates.effectivity_start||null,effectivity_end:dates.effectivity_end||null});}}><h2 className="font-semibold">Term effectivity defaults</h2><label className="my-2 block text-sm">Academic term<select aria-label="Effectivity academic term" className={field} value={termId??''} onChange={e=>selectTerm(e.target.value)}><option value="">Select term…</option>{terms.map(t=><option key={t.id} value={t.id}>{t.label}</option>)}</select></label><div className="my-3 flex gap-3"><label className="text-sm">From<input aria-label="Term effectivity start" className={field} type="date" value={dates.effectivity_start} onChange={e=>setDates({...dates,effectivity_start:e.target.value})}/></label><label className="text-sm">To<input aria-label="Term effectivity end" className={field} type="date" min={dates.effectivity_start} value={dates.effectivity_end} onChange={e=>setDates({...dates,effectivity_end:e.target.value})}/></label></div><button className={button} disabled={busy||!termId}>Save term dates</button></form>
+    <section className={panel}>
+      <h2 className="font-semibold">Signatory options</h2>
+      <ul className="my-3 space-y-2">{config.signatories.map(s=><li key={s.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-leaf-100 pb-2 text-sm">
+        <span>{s.slot} · {s.name} · {s.title} · {s.active?'Active':'Inactive'}</span>
+        <div className="flex gap-3"><button onClick={()=>{setEditing(s.id);setSignature({slot:s.slot,name:s.name,title:s.title,active:s.active});}}>Edit</button>{s.active&&<button className="text-red-700" onClick={()=>void save(`/api/signatory-options/${s.id}`,'DELETE')}>Remove</button>}</div>
+      </li>)}</ul>
+      <form className="grid items-end gap-3 sm:grid-cols-4" onSubmit={e=>{e.preventDefault();void save(`/api/signatory-options${editing?`/${editing}`:''}`,editing?'PATCH':'POST',signature).then(saved=>{if(!saved)return;setEditing('');setSignature({slot:'PREPARED',name:'',title:'',active:true});});}}>
+        <label className="text-sm">Slot<select className={field} value={signature.slot} onChange={e=>setSignature({...signature,slot:e.target.value as Signatory['slot']})}>{['PREPARED','REVIEWED','VERIFIED','APPROVED'].map(s=><option key={s}>{s}</option>)}</select></label>
+        <label className="text-sm">Name<input required className={field} value={signature.name} onChange={e=>setSignature({...signature,name:e.target.value})}/></label>
+        <label className="text-sm">Title<input required className={field} value={signature.title} onChange={e=>setSignature({...signature,title:e.target.value})}/></label>
+        <label className="flex gap-2 text-sm"><input type="checkbox" checked={signature.active} onChange={e=>setSignature({...signature,active:e.target.checked})}/>Active option</label>
+        <button className={button} disabled={busy}>{editing?'Update option':'Add option'}</button>
+      </form>
+    </section>
+    <form className={panel} onSubmit={e=>{e.preventDefault();void save('/api/load-settings','PUT',{...Object.fromEntries(loadKeys.map(k=>[k,load[k]])),prep_tiers:load.prep_tiers});}}><h2 className="font-semibold">Teaching load settings</h2><div className="my-3 grid gap-3 sm:grid-cols-3">{loadKeys.map(k=><label key={k} className="text-sm capitalize">{k.replaceAll('_',' ')}<input aria-label={k.replaceAll('_',' ')} className={field} type="number" step="0.01" min={k==='lab_coefficient'||k==='min_imp'?0:1} max={k==='lab_coefficient'?1:168} value={load[k]} onChange={e=>setLoad({...load,[k]:Number(e.target.value)})}/></label>)}</div><table className="my-3 w-full text-sm"><thead><tr><th>Minimum preps</th><th>Maximum preps</th><th>Ceiling</th></tr></thead><tbody>{load.prep_tiers.map((tier,index)=><tr key={index}>{(['minPreps','maxPreps','ceiling'] as const).map(k=><td key={k}><input className={field} aria-label={`Tier ${index+1} ${k}`} type="number" min={k==='ceiling'?0:1} step={k==='ceiling'?.01:1} value={tier[k]} onChange={e=>setLoad({...load,prep_tiers:load.prep_tiers.map((value,i)=>i===index?{...value,[k]:Number(e.target.value)}:value)})}/></td>)}</tr>)}</tbody></table><button className={button} disabled={busy}>Save load settings</button></form>
+  </motion.div>;
+}

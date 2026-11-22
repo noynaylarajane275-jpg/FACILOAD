@@ -1,0 +1,192 @@
+/* The editor uses the app's red glass surfaces, but gives the calendar all of
+   the vertical space so room and class controls stay beside the drop grid. */
+.schedule-shell-main {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 10px 20px 12px;
+}
+
+.schedule-page {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  gap: 10px;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.schedule-page :is(button, input, select, textarea, h1, h2, h3, p, span, label, legend) { font-family: inherit; letter-spacing: normal; }
+.schedule-page :is(h1, h2, h3, strong, .font-bold) { font-weight: 600; }
+.schedule-page .uppercase { text-transform: none; letter-spacing: normal; }
+.schedule-page button, .schedule-page select { font-size: 12px; }
+.schedule-page button:focus-visible, .schedule-page select:focus-visible { outline: 2px solid #b91c3c; outline-offset: 3px; }
+.schedule-page #schedule-title { font-size: 20px; line-height: 1.3; }
+.schedule-toolbar-layout { align-items: end; gap: 16px 20px; }
+.schedule-scope-filters { flex: 1; align-items: end; gap: 12px; }
+.schedule-scope-filters > label { display: flex; flex: 1 1 130px; flex-direction: column; align-items: stretch; gap: 5px; color: #475569; font-size: 12px; }
+.schedule-scope-filters select { width: 100%; min-width: 0; min-height: 36px; border-radius: 6px; background: #fff; color: #1e293b; }
+.schedule-toolbar-actions { align-self: end; padding-bottom: 1px; }
+.schedule-toolbar-actions button { min-height: 36px; border-radius: 6px; font-weight: 500; }
+.schedule-command-bar > p { margin-top: 12px; padding-top: 10px; border-top: 1px solid #e2e8f0; line-height: 1.5; }
+.schedule-assignment-rail > div:first-child { padding-bottom: 10px; border-bottom: 1px solid #e2e8f0; }
+.schedule-assignment-rail h2 { font-size: 14px; }
+.schedule-assignment-list { scrollbar-width: thin; }
+
+.schedule-command-bar {
+  flex: none;
+  padding: 16px 18px;
+  border-radius: 10px;
+  background: #fff;
+  backdrop-filter: none;
+}
+
+.schedule-empty-message {
+  flex: none;
+  padding: 6px 12px;
+}
+
+.schedule-grid-row {
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  align-items: stretch;
+  min-height: 0;
+  gap: 12px;
+}
+
+.schedule-assignment-rail {
+  display: flex;
+  flex: 0 0 17rem;
+  flex-direction: column;
+  min-height: 0;
+  max-height: 100%;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.schedule-assignment-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+}
+
+.schedule-grid-board {
+  display: flex;
+  flex: 1 1 0%;
+  height: 100%;
+  min-height: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 8px;
+  border-radius: 10px;
+}
+
+.schedule-grid-columns {
+  height: 100%;
+  min-height: 0;
+  align-items: stretch;
+}
+
+.schedule-time-gutter {
+  display: flex;
+  flex-direction: column;
+}
+
+.schedule-day-column {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  min-width: 80px;
+  flex: 1 1 132px;
+  flex-direction: column;
+}
+
+.schedule-day-heading {
+  display: flex;
+  flex: 0 0 28px;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+}
+
+.schedule-day-grid {
+  flex: none;
+}
+
+@media (max-width: 767px) {
+  .schedule-toolbar-layout { align-items: stretch; }
+  .schedule-scope-filters { flex-basis: 100%; }
+  .schedule-toolbar-actions { margin-left: 0; padding-left: 0; border-left: 0; flex-wrap: wrap; }
+  .schedule-shell-main {
+    display: block;
+    overflow: auto;
+    padding: 12px 16px 24px;
+  }
+
+  .schedule-page {
+    display: flex;
+    min-height: auto;
+    gap: 12px;
+  }
+
+  .schedule-grid-row {
+    flex: none;
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .schedule-assignment-rail {
+    width: 100%;
+    max-height: 22rem;
+    flex-basis: auto;
+  }
+
+  .schedule-grid-board {
+    height: auto;
+    min-height: 0;
+    overflow-y: visible;
+    padding: 8px;
+  }
+
+  .schedule-grid-columns {
+    height: auto;
+  }
+
+  .schedule-day-column {
+    height: auto;
+  }
+}
+
+@media (max-height: 500px) and (min-width: 768px) {
+  .schedule-shell-main {
+    overflow-y: auto;
+  }
+
+  .schedule-page {
+    min-height: 520px;
+    flex: none;
+  }
+
+  .schedule-grid-row {
+    min-height: 360px;
+    flex: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .schedule-page *,
+  .schedule-page *::before,
+  .schedule-page *::after {
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+    animation-duration: .01ms !important;
+  }
+}

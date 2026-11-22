@@ -1,0 +1,13 @@
+.faculty-directory { padding: 24px; border: 1px solid #f2cbd4; border-radius: 24px; background: linear-gradient(135deg,#fff 65%,#fff1f4); box-shadow: 0 20px 60px -45px #80112c; }
+.faculty-directory > div:first-child { padding-bottom: 22px; border-bottom: 1px solid #f1d4db; }
+.faculty-directory h1 { font-size: 30px; letter-spacing: -.04em; }
+.faculty-directory > div:first-child button { border-radius: 12px; padding: 12px 18px; background: #a51738; }
+.faculty-directory table { border-collapse: separate; border-spacing: 0 8px; }
+.faculty-directory thead { background: #faeaf0; }
+.faculty-directory th { padding: 12px 10px; font-size: 11px; }
+.faculty-directory td { padding: 16px 10px; background: #fff; border-bottom: 1px solid #f3dde3; }
+.faculty-directory tbody tr:hover td { background: #fff6f8; }
+.faculty-directory td:nth-child(2) { font-weight: 700; }
+.faculty-directory td:nth-child(6) { color: #9b1836; overflow-wrap: anywhere; }
+.faculty-directory input[type="search"] { border-radius: 12px; padding: 12px 16px; }
+@media(max-width:1000px) { .faculty-directory { padding: 16px; overflow-x: auto; } .faculty-directory table { min-width: 850px; } }
